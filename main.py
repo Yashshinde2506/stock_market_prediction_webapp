@@ -34,27 +34,16 @@ def calculate_performance_metrics(actual, predicted):
 
 # Streamlit app
 def main():
-    # background_image = """
-    # <style>
-    # [data-testid="stAppViewContainer"] > .main {
-    #     background-image: url("https://images.unsplash.com/photo-1542281286-9e0a16bb7366");
-    #     background-size: 100vw 100vh;  # This sets the size to cover 100% of the viewport width and height
-    #     background-position: center;  
-    #     background-repeat: no-repeat;
-    # }
-    # </style>
-    # """
+    # Use st.session_state instead of a custom SessionState class
+    if 'login_successful' not in st.session_state:
+        st.session_state.login_successful = False
 
-    # st.markdown(background_image, unsafe_allow_html=True)
-
-    
     st.sidebar.header('Navigation')
     page = st.sidebar.radio("Pick one", ["Home", "User Login"])
 
-    if page=="Home":
+    if page == "Home":
         st.title('Stock Prediction')
         image_path1 = './img.jpg'
-
 
         # Create three columns
         col1, col2, col3 = st.columns(3)
@@ -78,61 +67,81 @@ def main():
         """)
 
     elif page == "User Login":
-            st.title('Login')
-            user1 = st.text_input('Username')
-            pass1 = st.text_input('Password', type='password')
-            submit = st.button('Submit')
-            if submit:
-                if user1!='Yash' and pass1!='Pass123':
-                    st.error("Wrong Password")
-                elif user1=='Yash' and pass1=='Pass123':
+        
 
-                    st.header('User Input Parameters')
-                    ticker_symbol = st.text_input('Enter Ticker Symbol', 'RACE')
-                    start_date = st.date_input('Start Date', value=pd.to_datetime('2015-01-01'))
-                    end_date = st.date_input('End Date', value=pd.to_datetime('today'))
-                    forecast_horizon = st.selectbox('Forecast Horizon', options=['1 year', '2 years', '3 years', '5 years'], format_func=lambda x: x.capitalize())
+        if not st.session_state.login_successful:
+            st.title('Login')
+            col1, col2 = st.columns(2)
+            
+            user1 = col1.text_input('Username')
+            pass1 = col2.text_input('Password', type='password')
+            submit = st.button('Submit')
+
+            if submit:
+                if user1 == 'Yash' and pass1 == 'Pass123':
+                    st.session_state.login_successful = True
+
+        if st.session_state.login_successful:
+            # Hide login input boxes and password input box after successful login
+            st.empty()
+
+            st.header('User Input Parameters')
+            col1, col2 = st.columns(2)
+            ticker_symbol = col1.text_input('Enter Ticker Symbol', 'RACE')
+            start_date = col2.date_input('Start Date', value=pd.to_datetime('2015-01-01'))
+            end_date = col2.date_input('End Date', value=pd.to_datetime('today'))
+            forecast_horizon = col1.selectbox('Forecast Horizon', options=['1 year', '2 years', '3 years', '5 years'], format_func=lambda x: x.capitalize())
 
             # Introduction
             # Set up the layout
-                    # Convert the selected horizon to days
-                    horizon_mapping = {'1 year': 365, '2 years': 730, '3 years': 1095, '5 years': 1825}
-                    forecast_days = horizon_mapping[forecast_horizon]
+            # Convert the selected horizon to days
+            horizon_mapping = {'1 year': 365, '2 years': 730, '3 years': 1095, '5 years': 1825}
+            forecast_days = horizon_mapping[forecast_horizon]
 
-                    if st.button('Forecast Stock Prices'):
-                        with st.spinner('Fetching data...'):
-                            df = fetch_stock_data(ticker_symbol, start_date, end_date)
+            if st.button('Forecast Stock Prices'):
+                with st.spinner('Fetching data...'):
+                    df = fetch_stock_data(ticker_symbol, start_date, end_date)
 
-                        with st.spinner('Training model...'):
-                            model = train_prophet_model(df)
-                            forecast = make_forecast(model, forecast_days)
+                with st.spinner('Training model...'):
+                    model = train_prophet_model(df)
+                    forecast = make_forecast(model, forecast_days)
 
-                        st.subheader('Forecast Data')
-                        st.write('The table below shows the forecasted stock prices along with the lower and upper bounds of the predictions.')
-                        st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
+                # Show input parameters
+                st.subheader('User Input Parameters')
+                col3, col4 = st.columns(2)
+                col3.write(f'Ticker Symbol: {ticker_symbol}')
+                col3.write(f'Start Date: {start_date}')
+                col4.write(f'End Date: {end_date}')
+                col4.write(f'Forecast Horizon: {forecast_horizon}')
 
-                        st.subheader('Forecast Plot')
-                        st.write('The plot below visualizes the predicted stock prices with their confidence intervals.')
-                        fig1 = plot_plotly(model, forecast)
-                        fig1.update_traces(marker=dict(color='red'), line=dict(color='white'))
-                        st.plotly_chart(fig1)
+                # Show forecast data
+                st.subheader('Forecast Data')
+                st.write('The table below shows the forecasted stock prices along with the lower and upper bounds of the predictions.')
+                forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].rename(columns={'ds': 'Date', 'yhat': 'Predicted', 'yhat_lower': 'Lower Limit', 'yhat_upper': 'Upper Limit'})
+                st.write(forecast_table.head())
 
-                        st.subheader('Forecast Components')
-                        st.write('This plot breaks down the forecast into trend, weekly, and yearly components.')
-                        fig2 = plot_components_plotly(model, forecast)
-                        fig2.update_traces(line=dict(color='white'))
-                        st.plotly_chart(fig2)
+                st.subheader('Forecast Plot')
+                st.write('The plot below visualizes the predicted stock prices with their confidence intervals.')
+                fig1 = plot_plotly(model, forecast)
+                fig1.update_traces(marker=dict(color='red'), line=dict(color='white'))
+                st.plotly_chart(fig1)
 
-                        st.subheader('Performance Metrics')
+                # st.subheader('Forecast Components')
+                # st.write('This plot breaks down the forecast into trend, weekly, and yearly components.')
+                # fig2 = plot_components_plotly(model, forecast)
+                # fig2.update_traces(line=dict(color='white'))
+                # st.plotly_chart(fig2)
 
-                        st.write('The metrics below provide a quantitative measure of the model’s accuracy. The Mean Absolute Error (MAE) is the average absolute difference between predicted and actual values, Mean Squared Error (MSE) is the average squared difference, and Root Mean Squared Error (RMSE) is the square root of MSE, which is more interpretable in the same units as the target variable.')
+                # st.subheader('Performance Metrics')
 
-                        actual = df['y']
-                        predicted = forecast['yhat'][:len(df)]
-                        metrics = calculate_performance_metrics(actual, predicted)
-                        st.metric(label="Mean Absolute Error (MAE)", value="{:.2f}".format(metrics['MAE']), delta="Lower is better")
-                        st.metric(label="Mean Squared Error (MSE)", value="{:.2f}".format(metrics['MSE']), delta="Lower is better")
-                        st.metric(label="Root Mean Squared Error (RMSE)", value="{:.2f}".format(metrics['RMSE']), delta="Lower is better")
+                # st.write('The metrics below provide a quantitative measure of the model’s accuracy. The Mean Absolute Error (MAE) is the average absolute difference between predicted and actual values, Mean Squared Error (MSE) is the average squared difference, and Root Mean Squared Error (RMSE) is the square root of MSE, which is more interpretable in the same units as the target variable.')
+
+                # actual = df['y']
+                # predicted = forecast['yhat'][:len(df)]
+                # metrics = calculate_performance_metrics(actual, predicted)
+                # st.metric(label="Mean Absolute Error (MAE)", value="{:.2f}".format(metrics['MAE']), delta="Lower is better")
+                # st.metric(label="Mean Squared Error (MSE)", value="{:.2f}".format(metrics['MSE']), delta="Lower is better")
+                # st.metric(label="Root Mean Squared Error (RMSE)", value="{:.2f}".format(metrics['RMSE']), delta="Lower is better")
 
 # Run the main function
 if __name__ == "__main__":
