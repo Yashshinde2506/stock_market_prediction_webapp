@@ -86,6 +86,7 @@ def main():
                 if user1!='Yash' and pass1!='Pass123':
                     st.error("Wrong Password")
                 elif user1=='Yash' and pass1=='Pass123':
+                    st.success('Successfully Login')
 
                     st.sidebar.header('User Input Parameters')
                     ticker_symbol = st.sidebar.text_input('Enter Ticker Symbol', 'RACE')
