@@ -86,13 +86,12 @@ def main():
                 if user1!='Yash' and pass1!='Pass123':
                     st.error("Wrong Password")
                 elif user1=='Yash' and pass1=='Pass123':
-                    st.success('Successfully Login')
 
-                    st.sidebar.header('User Input Parameters')
-                    ticker_symbol = st.sidebar.text_input('Enter Ticker Symbol', 'RACE')
-                    start_date = st.sidebar.date_input('Start Date', value=pd.to_datetime('2015-01-01'))
-                    end_date = st.sidebar.date_input('End Date', value=pd.to_datetime('today'))
-                    forecast_horizon = st.sidebar.selectbox('Forecast Horizon', options=['1 year', '2 years', '3 years', '5 years'], format_func=lambda x: x.capitalize())
+                    st.header('User Input Parameters')
+                    ticker_symbol = st.text_input('Enter Ticker Symbol', 'RACE')
+                    start_date = st.date_input('Start Date', value=pd.to_datetime('2015-01-01'))
+                    end_date = st.date_input('End Date', value=pd.to_datetime('today'))
+                    forecast_horizon = st.selectbox('Forecast Horizon', options=['1 year', '2 years', '3 years', '5 years'], format_func=lambda x: x.capitalize())
 
             # Introduction
             # Set up the layout
@@ -100,7 +99,7 @@ def main():
                     horizon_mapping = {'1 year': 365, '2 years': 730, '3 years': 1095, '5 years': 1825}
                     forecast_days = horizon_mapping[forecast_horizon]
 
-                    if st.sidebar.button('Forecast Stock Prices'):
+                    if st.button('Forecast Stock Prices'):
                         with st.spinner('Fetching data...'):
                             df = fetch_stock_data(ticker_symbol, start_date, end_date)
 
